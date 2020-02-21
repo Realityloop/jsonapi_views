@@ -1,0 +1,15 @@
+# Defines a route where a site's featured content can be found.
+jsonapi_views.view:
+  path: '/%jsonapi%/views/{view}/{display}'
+  defaults:
+    _jsonapi_resource: Drupal\jsonapi_views\Resource\Views
+    _jsonapi_resource_types: ['room_reservation--room_reservation']
+    display: 'default'
+  requirements:
+    _permission: 'access content'
+  options:
+    parameters:
+      view:
+        type: entity:view
+      display:
+        type: string

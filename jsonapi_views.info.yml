@@ -1,0 +1,6 @@
+name: 'JSON:API Views'
+type: module
+core: 8.x
+dependencies:
+  - drupal:views
+  - jsonapi_resources:jsonapi_resources
