@@ -2,23 +2,20 @@
 
 namespace Drupal\jsonapi_views\Resource;
 
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\jsonapi\ResourceResponse;
 use Drupal\jsonapi_resources\Resource\EntityResourceBase;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\BubbleableMetadata;
-use Drupal\views\ViewEntityInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ResultRow;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Route;
 
 /**
  * Processes a request for a collection of featured nodes.
  *
  * @internal
  */
-final class Views extends EntityResourceBase
+final class ViewsResource extends EntityResourceBase
 {
   protected function executeView(ViewExecutable &$view, $display) {
     return $view->preview($display);
@@ -36,9 +33,16 @@ final class Views extends EntityResourceBase
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function process(Request $request, ViewEntityInterface $view, $display): ResourceResponse
+  public function process(Request $request): ResourceResponse
   {
-    $view = $view->getExecutable();
+    $view = $request->get('view');
+    assert($view instanceof ViewExecutable);
+    $display = $request->get('display');
+
+    // TODO: Check access properly.
+    if (!$view->access([$display])) {
+      return $this->createJsonapiResponse($this->createCollectionDataFromEntities([]), $request, 403, []);
+    }
 
     $context = new RenderContext();
     \Drupal::service('renderer')->executeInRenderContext($context, function () use (&$view, $display, $request) {
@@ -57,21 +61,7 @@ final class Views extends EntityResourceBase
 
     // @TODO: Build pagination links from the views pager object.
     // $pagination_links = ????
-
-    $response = $this->createJsonapiResponse($data, $request, 200, [] /* , $pagination_links */);
+    $response = $this->createJsonapiResponse($data, $request, 200, [] /* , $pagination_links */)->addCacheableDependency($bubbleable_metadata);
     return $response;
-  }
-
-  /**
-   * {@inheritdoc}
-   *
-   * @TODO: The third defaults parameter is not passed in be the calling enhancer method.
-   * This needs to be patched in jsonapi_resources
-   */
-  public function getRouteResourceTypes(Route $route, string $route_name, array $defaults): array
-  {
-    $view = $defaults['view']->getExecutable();
-    $entityType = $view->getBaseEntityType()->id();
-    return $this->getResourceTypesByEntityTypeId($entityType);
   }
 }
