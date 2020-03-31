@@ -15,9 +15,43 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @internal
  */
-final class ViewsResource extends EntityResourceBase
-{
-  protected function executeView(ViewExecutable &$view, $display) {
+final class ViewsResource extends EntityResourceBase {
+
+  /**
+   * Extracts exposed filter values from the request.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return array
+   *   Key value pairs of exposed filters.
+   */
+  protected function getExposedFilterParams(Request $request) {
+    $all_params = $request->query->all();
+    $exposed_filter_params = isset($all_params['views-filter'])
+      ? $all_params['views-filter']
+      : [];
+    return $exposed_filter_params;
+  }
+
+  /**
+   * Executes a view display with url parameters.
+   *
+   * @param \Drupal\views\ViewExecutable\ViewExecutable $view
+   *   An executable view instance.
+   * @param string $display
+   *   A display machine name.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return \Drupal\views\ViewExecutable\ViewExecutable
+   *   The executed view with query parameters applied as exposed filters.
+   */
+  protected function executeView(ViewExecutable &$view, string $display, Request $request) {
+    // Get params from request.
+    $exposed_filter_params = $this->getExposedFilterParams($request);
+    $view->setExposedInput($exposed_filter_params);
+
     return $view->preview($display);
   }
 
@@ -33,8 +67,7 @@ final class ViewsResource extends EntityResourceBase
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
-  public function process(Request $request): ResourceResponse
-  {
+  public function process(Request $request): ResourceResponse {
     $view = $request->get('view');
     assert($view instanceof ViewExecutable);
     $display = $request->get('display');
@@ -56,12 +89,18 @@ final class ViewsResource extends EntityResourceBase
         ->merge($bubbleable_metadata);
     }
 
-    $entities = array_map(function(ResultRow $row){ return $row->_entity; }, $view->result);
+    $entities = array_map(function (ResultRow $row) {
+      return $row->_entity;
+    }, $view->result);
     $data = $this->createCollectionDataFromEntities($entities);
 
     // @TODO: Build pagination links from the views pager object.
     // $pagination_links = ????
-    $response = $this->createJsonapiResponse($data, $request, 200, [] /* , $pagination_links */)->addCacheableDependency($bubbleable_metadata);
+    $response = $this->createJsonapiResponse($data, $request, 200, [] /* , $pagination_links */);
+    if (isset($bubbleable_metadata)) {
+      $response->addCacheableDependency($bubbleable_metadata);
+    }
     return $response;
   }
+
 }
