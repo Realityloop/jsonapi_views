@@ -11,8 +11,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
-class Routes implements ContainerInjectionInterface
-{
+/**
+ * Defines dynamic routes.
+ *
+ * Each Views view and display comnbination will result in
+ * a jsonapi resource at: /{jsonapi_namespace}/views/{view_id}/{display_id}
+ */
+class Routes implements ContainerInjectionInterface {
 
   const RESOURCE_NAME = ViewsResource::class;
 
@@ -22,28 +27,41 @@ class Routes implements ContainerInjectionInterface
   const DISPLAY_KEY = 'display';
 
   /**
+   * Resource type bundle repository.
+   *
    * @var \Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface
    */
   protected $resourceTypeRepository;
 
+  /**
+   * Entity type bundle info interface.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface
+   */
   protected $entityTypeBundleInfo;
 
-  public function __construct(ResourceTypeRepositoryInterface $resource_type_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info)
-  {
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(ResourceTypeRepositoryInterface $resource_type_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info) {
     $this->resourceTypeRepository = $resource_type_repository;
     $this->entityTypeBundleInfo = $entity_type_bundle_info;
   }
 
-  public static function create(ContainerInterface $container)
-  {
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
     return new static(
       $container->get('jsonapi.resource_type.repository'),
       $container->get('entity_type.bundle.info')
     );
   }
 
-  public function routes()
-  {
+  /**
+   * {@inheritdoc}
+   */
+  public function routes() {
     $jsonapi_views_routes = new RouteCollection();
     $base_path = '/%jsonapi%/views';
     $views = Views::getEnabledViews();
@@ -71,7 +89,11 @@ class Routes implements ContainerInjectionInterface
       foreach ($view->get('display') as $display) {
         $display_name = $display['id'];
 
-        $views_display_route = new Route(implode('/', [$base_path, $view_name, $display_name]));
+        $views_display_route = new Route(implode('/', [
+          $base_path,
+          $view_name,
+          $display_name,
+        ]));
         $views_display_route->addDefaults([
           static::JSONAPI_RESOURCE_KEY => static::RESOURCE_NAME,
           static::JSONAPI_RESOURCE_TYPES_KEY => $resource_types,
@@ -86,4 +108,5 @@ class Routes implements ContainerInjectionInterface
     $jsonapi_views_routes->addRequirements(['_access' => 'TRUE']);
     return $jsonapi_views_routes;
   }
+
 }
