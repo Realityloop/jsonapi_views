@@ -87,21 +87,21 @@ class Routes implements ContainerInjectionInterface {
 
       // Create routes for each display.
       foreach ($view->get('display') as $display) {
-        $display_name = $display['id'];
+        $display_id = $display['id'];
 
         $views_display_route = new Route(implode('/', [
           $base_path,
           $view_name,
-          $display_name,
+          $display_id,
         ]));
         $views_display_route->addDefaults([
           static::JSONAPI_RESOURCE_KEY => static::RESOURCE_NAME,
           static::JSONAPI_RESOURCE_TYPES_KEY => $resource_types,
-          static::VIEW_KEY => $view->getExecutable(),
-          static::DISPLAY_KEY => $display_name,
+          static::VIEW_KEY => $view->id(),
+          static::DISPLAY_KEY => $display_id,
         ]);
 
-        $jsonapi_views_routes->add("jsonapi_views.$view_name.$display_name", $views_display_route);
+        $jsonapi_views_routes->add("jsonapi_views.$view_name.$display_id", $views_display_route);
       }
     }
 

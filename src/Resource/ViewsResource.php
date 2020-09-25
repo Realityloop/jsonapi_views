@@ -6,8 +6,9 @@ use Drupal\jsonapi\ResourceResponse;
 use Drupal\jsonapi_resources\Resource\EntityResourceBase;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\BubbleableMetadata;
-use Drupal\views\ViewExecutable;
 use Drupal\views\ResultRow;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -39,7 +40,7 @@ final class ViewsResource extends EntityResourceBase {
    *
    * @param \Drupal\views\ViewExecutable\ViewExecutable $view
    *   An executable view instance.
-   * @param string $display
+   * @param string $display_id
    *   A display machine name.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request.
@@ -47,12 +48,12 @@ final class ViewsResource extends EntityResourceBase {
    * @return \Drupal\views\ViewExecutable\ViewExecutable
    *   The executed view with query parameters applied as exposed filters.
    */
-  protected function executeView(ViewExecutable &$view, string $display, Request $request) {
+  protected function executeView(ViewExecutable &$view, string $display_id, Request $request) {
     // Get params from request.
     $exposed_filter_params = $this->getExposedFilterParams($request);
     $view->setExposedInput($exposed_filter_params);
 
-    return $view->preview($display);
+    return $view->preview($display_id);
   }
 
   /**
@@ -68,18 +69,18 @@ final class ViewsResource extends EntityResourceBase {
    * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function process(Request $request): ResourceResponse {
-    $view = $request->get('view');
+    $view = Views::getView($request->get('view'));
     assert($view instanceof ViewExecutable);
-    $display = $request->get('display');
+    $display_id = $request->get('display');
 
     // TODO: Check access properly.
-    if (!$view->access([$display])) {
+    if (!$view->access([$display_id])) {
       return $this->createJsonapiResponse($this->createCollectionDataFromEntities([]), $request, 403, []);
     }
 
     $context = new RenderContext();
-    \Drupal::service('renderer')->executeInRenderContext($context, function () use (&$view, $display, $request) {
-      return $this->executeView($view, $display, $request);
+    \Drupal::service('renderer')->executeInRenderContext($context, function () use (&$view, $display_id, $request) {
+      return $this->executeView($view, $display_id, $request);
     });
 
     // Handle any bubbled cacheability metadata.
