@@ -5,10 +5,8 @@ namespace Drupal\Tests\jsonapi_views\Functional;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
-use Drupal\node\Entity\NodeType;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 use Drupal\Tests\jsonapi\Functional\JsonApiRequestTestTrait;
@@ -50,6 +48,7 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
     'path',
     'views',
     'jsonapi_views',
+    'jsonapi_views_test',
   ];
 
   /**
@@ -74,31 +73,6 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
     $user_role->save();
     assert([] === $user_role->getPermissions(), 'The authenticated user role has no permissions at all.');
 
-    // Create test bundles and and entity references and rebuild routes.
-    NodeType::create([
-      'name' => 'location',
-      'type' => 'location',
-    ])->save();
-    NodeType::create([
-      'name' => 'room',
-      'type' => 'room',
-    ])->save();
-
-    $this->createEntityReferenceField(
-      'node',
-      'room',
-      'field_location',
-      'Location',
-      'node',
-      'default',
-      [
-        'target_bundles' => [
-          'location' => 'location',
-        ],
-      ],
-      FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED
-    );
-
     $this->container->get('router.builder')->rebuildIfNeeded();
 
     // Create an account, which tests will use. Also ensure the @current_user
@@ -109,17 +83,31 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
   }
 
   /**
+   * Tests that the test view has been enabled.
+   */
+  public function testNodeViewExists() {
+    $account = $this->drupalCreateUser(['access content']);
+    $this->drupalLogin($account);
+
+    $this->drupalGet('jsonapi-views-test-node-view');
+    $this->assertSession()->statusCodeEquals(200);
+
+    // Test that there is an empty reaction rule listing.
+    $this->assertSession()->pageTextContains('JSON:API Views Test Node View');
+  }
+
+  /**
    * Tests the Current User Info resource.
    */
   public function testContentPageViewsResource() {
     $role_id = $this->drupalCreateRole([
-      'access content overview',
+      'access content',
     ]);
     $this->account->addRole($role_id);
     $this->account->setEmail('test@example.com');
     $this->account->save();
 
-    $url = Url::fromUri('internal:/jsonapi/views/content/page_1');
+    $url = Url::fromUri('internal:/jsonapi/views/jsonapi_views_test_node_view/page_1');
     $request_options = [];
     $request_options[RequestOptions::HEADERS]['Accept'] = 'application/vnd.api+json';
     $request_options = NestedArray::mergeDeep($request_options, $this->getAuthenticationRequestOptions());
@@ -127,8 +115,8 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
 
     $this->assertSame(200, $response->getStatusCode(), var_export(Json::decode((string) $response->getBody()), TRUE));
     $response_document = Json::decode((string) $response->getBody());
-    $this->assertIsArray($response_document['data']);
 
+    $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
   }
 
@@ -172,7 +160,7 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
       $nodes[$promoted ? 'promoted' : 'unpromoted'][$node->uuid()] = $node;
     }
 
-    $url = Url::fromUri('internal:/jsonapi/views/content/page_1');
+    $url = Url::fromUri('internal:/jsonapi/views/jsonapi_views_test_node_view/page_1');
 
     // Get all nodes.
     $url->setOption('query', [
@@ -184,7 +172,7 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
     $response_document = Json::decode((string) $response->getBody());
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
-    // @TODO - Fix tests and/or Exposed filtes.
+    // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
     // $this->assertCount(9, $response_document['data']);
     // $this->assertSame(array_reverse(array_keys($nodes['all'])), array_map(static function (array $data) {
@@ -205,7 +193,7 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(3, $response_document['data']);
-    // @TODO - Fix tests and/or Exposed filtes.
+    // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
     // $this->assertSame(array_reverse(array_keys($nodes['published'])), array_map(static function (array $data) {
     //   return $data['id'];
@@ -216,13 +204,14 @@ class JsonapiViewsResourceTest extends BrowserTestBase {
     $url->setOption('query', [
       'views-filter[status]' => '2',
     ]);
+
     $response = $this->request('GET', $url, $request_options);
+
     $this->assertSame(200, $response->getStatusCode(), var_export(Json::decode((string) $response->getBody()), TRUE));
     $response_document = Json::decode((string) $response->getBody());
-
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
-    // @TODO - Fix tests and/or Exposed filtes.
+    // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
     // $this->assertCount(7, $response_document['data']);
     // $this->assertSame(array_reverse(array_keys($nodes['unpublished'])), array_map(static function (array $data) {
