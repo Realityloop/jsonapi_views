@@ -113,21 +113,16 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
-    // @TODO - Fix after https://www.drupal.org/project/jsonapi_views/issues/3172648
-    // phpcs:disable
-    // $this->assertCount(1, $response_document['data']);
-    // $this->assertSame($room->uuid(), $response_document['data'][0]['id']);
-    // phpcs:enable
+    $this->assertCount(1, $response_document['data']);
+    $this->assertSame($room->uuid(), $response_document['data'][0]['id']);
 
     // Attachment display.
     $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'attachment_1');
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
-    // @TODO - Fix after https://www.drupal.org/project/jsonapi_views/issues/3172648
-    // $this->assertCount(1, $response_document['data']);
-    // $this->assertSame($room->uuid(), $response_document['data'][0]['id']);
-    // phpcs:enable
+    $this->assertCount(1, $response_document['data']);
+    $this->assertSame($location->uuid(), $response_document['data'][0]['id']);
   }
 
   /**
