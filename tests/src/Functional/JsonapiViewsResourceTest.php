@@ -107,8 +107,6 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(2, $response_document['data']);
-    $this->assertSame($location->uuid(), $response_document['data'][0]['id']);
-    $this->assertSame($room->uuid(), $response_document['data'][1]['id']);
 
     // Block display.
     $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'block_1');
