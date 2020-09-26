@@ -2,6 +2,6 @@ name: 'JSON:API Views Test'
 type: module
 core_version_requirement: '^8.8 || ^9'
 dependencies:
-  - 'drupal:node'
-  - 'drupal:views'
-  - 'drupal:menu_ui'
+  - drupal:node
+  - drupal:views
+  - jsonapi_views:jsonapi_views
