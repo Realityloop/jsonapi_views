@@ -102,14 +102,18 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->drupalLogin($this->drupalCreateUser(['access content']));
 
     // Page display.
-    $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1');
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1')
+    );
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(2, $response_document['data']);
 
     // Block display.
-    $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'block_1');
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'block_1')
+    );
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
@@ -117,7 +121,9 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertSame($room->uuid(), $response_document['data'][0]['id']);
 
     // Attachment display.
-    $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'attachment_1');
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'attachment_1')
+    );
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
@@ -155,7 +161,9 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // Get all nodes.
     $query = ['views-filter[status]' => '0'];
-    $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
@@ -168,7 +176,9 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // Get published nodes.
     $query = ['views-filter[status]' => '1'];
-    $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
@@ -181,7 +191,9 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // Get unpublished nodes.
     $query = ['views-filter[status]' => '2'];
-    $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
@@ -191,6 +203,92 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     //   return $data['id'];
     // }, $response_document['data']));
     // phpcs:enable
+  }
+
+  /**
+   * Tests the JSON:API Views resource Pager feature.
+   */
+  public function testJsonApiViewsResourcePager() {
+    $this->drupalLogin($this->drupalCreateUser(['access content']));
+
+    $nodes = [];
+
+    for ($i = 0; $i < 12; $i++) {
+      $node = $this->drupalCreateNode([
+        'type' => 'room',
+        'status' => 1,
+      ]);
+      $node->save();
+
+      $nodes['all'][$node->uuid()] = $node;
+    }
+    $nodes['paged'] = array_chunk($nodes['all'], 5, TRUE);
+
+    // Test that views showing a specified number of items do not include
+    // pager links. The block view is configured to show 5 items with no pager.
+    $query = [];
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'block_1', $query)
+    );
+    $this->assertCount(5, $response_document['data']);
+    $this->assertSame(array_keys($nodes['paged'][0]), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertArrayNotHasKey('prev', $response_document['links']);
+
+    // Test that views showing a paged items include the correct links
+    // The embed view is configured to show a 5 item mini pager.
+    $query = [];
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', $query)
+    );
+    $this->assertCount(5, $response_document['data']);
+    $this->assertSame(array_keys($nodes['paged'][0]), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertArrayNotHasKey('prev', $response_document['links']);
+    $this->assertSame(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 1])->setAbsolute()->toString(),
+      $response_document['links']['next']['href']
+    );
+
+    $response_document = $this->getJsonApiViewResponse(
+      URL::fromUri($response_document['links']['next']['href'])
+    );
+    $this->assertCount(5, $response_document['data']);
+    $this->assertSame(array_keys($nodes['paged'][1]), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertSame(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 0])->setAbsolute()->toString(),
+      $response_document['links']['prev']['href']
+    );
+    $this->assertSame(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 2])->setAbsolute()->toString(),
+      $response_document['links']['next']['href']
+    );
+
+    $response_document = $this->getJsonApiViewResponse(
+      URL::fromUri($response_document['links']['next']['href'])
+    );
+    $this->assertCount(2, $response_document['data']);
+    $this->assertSame(array_keys($nodes['paged'][2]), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertSame(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 1])->setAbsolute()->toString(),
+      $response_document['links']['prev']['href']
+    );
+    $this->assertArrayNotHasKey('next', $response_document['links']);
+
+    $query = [
+      'page' => 10,
+    ];
+    $response_document = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', $query)
+    );
+    $this->assertCount(0, $response_document['data']);
+    $this->assertArrayNotHasKey('next', $response_document['links']);
   }
 
   /**
@@ -212,20 +310,13 @@ class JsonapiViewsResourceTest extends ViewTestBase {
   /**
    * Get a JSON:API Views resource response document.
    *
-   * @param string $view_name
-   *   The View name.
-   * @param string $display_id
-   *   The View display id.
-   * @param string $query
-   *   A query object to add to the request.
+   * @param \Drupal\core\Url $url
+   *   The url for a JSON:API View.
    *
    * @return array
    *   The response document.
    */
-  protected function getJsonApiViewResponse($view_name, $display_id, $query = []) {
-    $url = Url::fromUri("internal:/jsonapi/views/{$view_name}/{$display_id}");
-    $url->setOption('query', $query);
-
+  protected function getJsonApiViewResponse(Url $url) {
     $request_options = [];
     $request_options[RequestOptions::HEADERS]['Accept'] = 'application/vnd.api+json';
     $request_options = NestedArray::mergeDeep($request_options, $this->getAuthenticationRequestOptions());
@@ -240,6 +331,26 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertArrayNotHasKey('errors', $response_document);
 
     return $response_document;
+  }
+
+  /**
+   * Get a JSON:API Views Url for a given view display.
+   *
+   * @param string $view_name
+   *   The View name.
+   * @param string $display_id
+   *   The View display id.
+   * @param string $query
+   *   A query object to add to the request.
+   *
+   * @return \Drupal\core\Url
+   *   The url for a JSON:API View.
+   */
+  protected function getJsonApiViewUrl($view_name, $display_id, $query = []) {
+    $url = Url::fromUri("internal:/jsonapi/views/{$view_name}/{$display_id}");
+    $url->setOption('query', $query);
+
+    return $url;
   }
 
 }

@@ -2,10 +2,14 @@
 
 namespace Drupal\jsonapi_views\Resource;
 
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Render\RenderContext;
+use Drupal\Core\Url;
+use Drupal\jsonapi\JsonApiResource\Link;
+use Drupal\jsonapi\JsonApiResource\LinkCollection;
 use Drupal\jsonapi\ResourceResponse;
 use Drupal\jsonapi_resources\Resource\EntityResourceBase;
-use Drupal\Core\Render\RenderContext;
-use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
@@ -33,6 +37,51 @@ final class ViewsResource extends EntityResourceBase {
       ? $all_params['views-filter']
       : [];
     return $exposed_filter_params;
+  }
+
+  /**
+   * Get views pager.
+   *
+   * @param \Drupal\views\ViewExecutable $view
+   *   View executable.
+   *
+   * @return \Drupal\jsonapi\JsonApiResource\LinkCollectionLinkCollection
+   *   Navigation links.
+   */
+  public function getViewsPager(ViewExecutable $view) : LinkCollection {
+    $pager_links = new LinkCollection([]);
+    /** @var \Drupal\Core\Pager\PagerManagerInterface $pager_manager */
+    $pager_manager = \Drupal::service('pager.manager');
+    $element = $view->pager->getPagerId();
+    $pager = $pager_manager->getPager($element);
+
+    if (!$pager) {
+      return $pager_links;
+    }
+
+    $parameters = [];
+    $current = $pager->getCurrentPage();
+    $total = $pager->getTotalPages();
+
+    // Add 'prev' link.
+    if ($current > 0) {
+      $options = [
+        'query' => $pager_manager->getUpdatedParameters($parameters, $element, $current - 1),
+      ];
+      $prev = Url::fromRoute('<current>', [], $options);
+      $pager_links = $pager_links->withLink('prev', new Link(new CacheableMetadata(), $prev, 'prev'));
+    }
+
+    // Add 'next' link.
+    if ($current < ($total - 1)) {
+      $options = [
+        'query' => $pager_manager->getUpdatedParameters($parameters, $element, $current + 1),
+      ];
+      $next = Url::fromRoute('<current>', [], $options);
+      $pager_links = $pager_links->withLink('next', new Link(new CacheableMetadata(), $next, 'next'));
+    }
+
+    return $pager_links;
   }
 
   /**
@@ -94,11 +143,11 @@ final class ViewsResource extends EntityResourceBase {
       return $row->_entity;
     }, $view->result);
     $data = $this->createCollectionDataFromEntities($entities);
+    $pagination_links = $this->getViewsPager($view);
 
-    // @TODO: Build pagination links from the views pager object.
-    // $pagination_links = ????
-    $response = $this->createJsonapiResponse($data, $request, 200, [] /* , $pagination_links */);
+    $response = $this->createJsonapiResponse($data, $request, 200, [], $pagination_links);
     if (isset($bubbleable_metadata)) {
+      $bubbleable_metadata->addCacheContexts(['url.query_args:page']);
       $response->addCacheableDependency($bubbleable_metadata);
     }
     return $response;
