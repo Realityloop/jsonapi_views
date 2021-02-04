@@ -150,7 +150,7 @@ class JsonapiViewsResourceTest extends ViewTestBase {
    * Tests the JSON:API Views resource Exposed Filters feature.
    */
   public function testJsonApiViewsResourceExposedFilters() {
-    $this->drupalLogin($this->drupalCreateUser(['access content']));
+    $this->drupalLogin($this->drupalCreateUser(['access content', 'bypass node access']));
 
     $nodes = [
       'published' => [],
@@ -174,53 +174,45 @@ class JsonapiViewsResourceTest extends ViewTestBase {
       $nodes[$promoted ? 'promoted' : 'unpromoted'][$node->uuid()] = $node;
     }
 
-    // Get all nodes.
-    $query = ['views-filter[status]' => '0'];
-    $this->getJsonApiViewResponse(
-      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
-    );
-
-    // @TODO - Fix tests and/or Exposed filters.
-    // phpcs:disable
-    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
-    // $this->assertCount(9, $response_document['data']);
-    // $this->assertSame(array_reverse(array_keys($nodes['all'])), array_map(static function (array $data) {
-    //   return $data['id'];
-    // }, $response_document['data']));
-    // $this->assertCacheContext($headers, 'url.query_args:page');
-    // phpcs:enable
-
     // Get published nodes.
     $query = ['views-filter[status]' => '1'];
-    $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
     );
 
-    // @TODO - Fix tests and/or Exposed filters.
-    // phpcs:disable
-    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
-    // $this->assertCount(3, $response_document['data']);
-    // $this->assertSame(array_reverse(array_keys($nodes['published'])), array_map(static function (array $data) {
-    //   return $data['id'];
-    // }, $response_document['data']));
-    // $this->assertCacheContext($headers, 'url.query_args:page');
-    // phpcs:enable
+    $this->assertCount(3, $response_document['data']);
+    $this->assertArrayNotHasKey('next', $response_document['links']);
+    $this->assertSame(array_keys($nodes['published']), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertCacheContext($headers, 'url.query_args:views-filter');
 
     // Get unpublished nodes.
-    $query = ['views-filter[status]' => '2'];
-    $this->getJsonApiViewResponse(
+    $query = ['views-filter[status]' => '0'];
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
     );
 
-    // @TODO - Fix tests and/or Exposed filters.
-    // phpcs:disable
-    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
-    // $this->assertCount(7, $response_document['data']);
-    // $this->assertSame(array_reverse(array_keys($nodes['unpublished'])), array_map(static function (array $data) {
-    //   return $data['id'];
-    // }, $response_document['data']));
-    // $this->assertCacheContext($headers, 'url.query_args:page');
-    // phpcs:enable
+    $this->assertCount(5, $response_document['data']);
+    $this->assertArrayHasKey('next', $response_document['links']);
+    $this->assertSame(array_slice(array_keys($nodes['unpublished']), 0, 5), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertCacheContext($headers, 'url.query_args:views-filter');
+
+
+    // Get all nodes.
+    $query = [];
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
+
+    $this->assertCount(5, $response_document['data']);
+    $this->assertArrayHasKey('next', $response_document['links']);
+    $this->assertSame(array_slice(array_keys($nodes['all']), 0, 5), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertCacheContext($headers, 'url.query_args:views-filter');
   }
 
   /**
