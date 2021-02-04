@@ -80,6 +80,18 @@ class JsonapiViewsResourceTest extends ViewTestBase {
   }
 
   /**
+   * Asserts whether an expected cache context was present in the last response.
+   *
+   * @param string $expected_cache_context
+   *   The expected cache context.
+   */
+  protected function assertCacheContext($headers, $expected_cache_context) {
+    $cache_contexts = explode(' ', $headers['X-Drupal-Cache-Contexts'][0]);
+    $this
+      ->assertTrue(in_array($expected_cache_context, $cache_contexts), "'" . $expected_cache_context . "' is present in the X-Drupal-Cache-Contexts header.");
+  }
+
+  /**
    * Tests that the test view has been enabled.
    */
   public function testNodeViewExists() {
@@ -102,16 +114,17 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->drupalLogin($this->drupalCreateUser(['access content']));
 
     // Page display.
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1')
     );
 
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(2, $response_document['data']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
     // Block display.
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'block_1')
     );
 
@@ -119,9 +132,10 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(1, $response_document['data']);
     $this->assertSame($room->uuid(), $response_document['data'][0]['id']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
     // Attachment display.
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'attachment_1')
     );
 
@@ -129,6 +143,7 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertArrayNotHasKey('errors', $response_document);
     $this->assertCount(1, $response_document['data']);
     $this->assertSame($location->uuid(), $response_document['data'][0]['id']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
   }
 
   /**
@@ -167,11 +182,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
-    // $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
     // $this->assertCount(9, $response_document['data']);
     // $this->assertSame(array_reverse(array_keys($nodes['all'])), array_map(static function (array $data) {
     //   return $data['id'];
     // }, $response_document['data']));
+    // $this->assertCacheContext($headers, 'url.query_args:page');
     // phpcs:enable
 
     // Get published nodes.
@@ -182,11 +198,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
-    // $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
     // $this->assertCount(3, $response_document['data']);
     // $this->assertSame(array_reverse(array_keys($nodes['published'])), array_map(static function (array $data) {
     //   return $data['id'];
     // }, $response_document['data']));
+    // $this->assertCacheContext($headers, 'url.query_args:page');
     // phpcs:enable
 
     // Get unpublished nodes.
@@ -197,11 +214,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
 
     // @TODO - Fix tests and/or Exposed filters.
     // phpcs:disable
-    // $response_document = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
+    // [$response_document, $headers] = $this->getJsonApiViewResponse('jsonapi_views_test_node_view', 'page_1', $query);
     // $this->assertCount(7, $response_document['data']);
     // $this->assertSame(array_reverse(array_keys($nodes['unpublished'])), array_map(static function (array $data) {
     //   return $data['id'];
     // }, $response_document['data']));
+    // $this->assertCacheContext($headers, 'url.query_args:page');
     // phpcs:enable
   }
 
@@ -227,21 +245,24 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     // Test that views showing a specified number of items do not include
     // pager links. The block view is configured to show 5 items with no pager.
     $query = [];
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'block_1', $query)
     );
+
     $this->assertCount(5, $response_document['data']);
     $this->assertSame(array_keys($nodes['paged'][0]), array_map(static function (array $data) {
       return $data['id'];
     }, $response_document['data']));
     $this->assertArrayNotHasKey('prev', $response_document['links']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
     // Test that views showing a paged items include the correct links
     // The embed view is configured to show a 5 item mini pager.
     $query = [];
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', $query)
     );
+
     $this->assertCount(5, $response_document['data']);
     $this->assertSame(array_keys($nodes['paged'][0]), array_map(static function (array $data) {
       return $data['id'];
@@ -251,10 +272,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 1])->setAbsolute()->toString(),
       $response_document['links']['next']['href']
     );
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       URL::fromUri($response_document['links']['next']['href'])
     );
+
     $this->assertCount(5, $response_document['data']);
     $this->assertSame(array_keys($nodes['paged'][1]), array_map(static function (array $data) {
       return $data['id'];
@@ -267,10 +290,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', ['page' => 2])->setAbsolute()->toString(),
       $response_document['links']['next']['href']
     );
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       URL::fromUri($response_document['links']['next']['href'])
     );
+
     $this->assertCount(2, $response_document['data']);
     $this->assertSame(array_keys($nodes['paged'][2]), array_map(static function (array $data) {
       return $data['id'];
@@ -280,15 +305,18 @@ class JsonapiViewsResourceTest extends ViewTestBase {
       $response_document['links']['prev']['href']
     );
     $this->assertArrayNotHasKey('next', $response_document['links']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
 
     $query = [
       'page' => 10,
     ];
-    $response_document = $this->getJsonApiViewResponse(
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'embed_1', $query)
     );
+
     $this->assertCount(0, $response_document['data']);
     $this->assertArrayNotHasKey('next', $response_document['links']);
+    $this->assertCacheContext($headers, 'url.query_args:page');
   }
 
   /**
@@ -330,7 +358,7 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertIsArray($response_document['data']);
     $this->assertArrayNotHasKey('errors', $response_document);
 
-    return $response_document;
+    return [$response_document, $response->getHeaders()];
   }
 
   /**

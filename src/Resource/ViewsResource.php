@@ -138,6 +138,9 @@ final class ViewsResource extends EntityResourceBase {
       BubbleableMetadata::createFromObject($view->result)
         ->merge($bubbleable_metadata);
     }
+    else {
+      $bubbleable_metadata = BubbleableMetadata::createFromObject($view->result);
+    }
 
     $entities = array_map(function (ResultRow $row) {
       return $row->_entity;
