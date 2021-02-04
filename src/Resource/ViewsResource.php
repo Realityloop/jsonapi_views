@@ -150,7 +150,7 @@ final class ViewsResource extends EntityResourceBase {
 
     $response = $this->createJsonapiResponse($data, $request, 200, [], $pagination_links);
     if (isset($bubbleable_metadata)) {
-      $bubbleable_metadata->addCacheContexts(['url.query_args:page']);
+      $bubbleable_metadata->addCacheContexts(['url.query_args:page', 'url.query_args:views-filter']);
       $response->addCacheableDependency($bubbleable_metadata);
     }
     return $response;
