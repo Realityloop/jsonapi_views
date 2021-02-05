@@ -62,10 +62,10 @@ final class ViewsResource extends EntityResourceBase {
    * @param \Drupal\views\ViewExecutable $view
    *   View executable.
    *
-   * @return \Drupal\jsonapi\JsonApiResource\LinkCollectionLinkCollection
-   *   Navigation links.
+   * @return array
+   *   Navigation links and total count.
    */
-  public function getViewsPager(ViewExecutable $view) : LinkCollection {
+  public function getViewsPager(ViewExecutable $view) : array {
     $pager_links = new LinkCollection([]);
     /** @var \Drupal\Core\Pager\PagerManagerInterface $pager_manager */
     $pager_manager = \Drupal::service('pager.manager');
@@ -73,7 +73,7 @@ final class ViewsResource extends EntityResourceBase {
     $pager = $pager_manager->getPager($element);
 
     if (!$pager) {
-      return $pager_links;
+      return [$pager_links, NULL];
     }
 
     $parameters = [];
@@ -98,7 +98,7 @@ final class ViewsResource extends EntityResourceBase {
       $pager_links = $pager_links->withLink('next', new Link(new CacheableMetadata(), $next, 'next'));
     }
 
-    return $pager_links;
+    return [$pager_links, $pager->getTotalItems()];
   }
 
   /**
@@ -165,9 +165,9 @@ final class ViewsResource extends EntityResourceBase {
       return $row->_entity;
     }, $view->result);
     $data = $this->createCollectionDataFromEntities($entities);
-    $pagination_links = $this->getViewsPager($view);
+    list($pagination_links, $total_count) = $this->getViewsPager($view);
 
-    $response = $this->createJsonapiResponse($data, $request, 200, [], $pagination_links);
+    $response = $this->createJsonapiResponse($data, $request, 200, [], $pagination_links, ['count' => $total_count]);
     if (isset($bubbleable_metadata)) {
       $bubbleable_metadata->addCacheContexts([
         'url.query_args:page',
