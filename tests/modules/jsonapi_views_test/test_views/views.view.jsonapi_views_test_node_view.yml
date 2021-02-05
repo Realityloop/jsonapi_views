@@ -214,9 +214,9 @@ display:
           group_type: group
           admin_label: ''
           order: ASC
-          exposed: false
+          exposed: true
           expose:
-            label: ''
+            label: ID
           entity_type: node
           entity_field: nid
           plugin_id: standard
@@ -238,6 +238,8 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -348,6 +350,8 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -535,6 +539,8 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -552,6 +558,8 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -572,6 +580,8 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }
@@ -590,6 +600,8 @@ display:
         - 'languages:language_interface'
         - url
         - url.query_args
+        - 'url.query_args:sort_by'
+        - 'url.query_args:sort_order'
         - 'user.node_grants:view'
         - user.permissions
       tags: {  }

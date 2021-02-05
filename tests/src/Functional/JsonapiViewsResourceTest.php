@@ -216,6 +216,48 @@ class JsonapiViewsResourceTest extends ViewTestBase {
   }
 
   /**
+   * Tests the JSON:API Views resource Exposed Sort feature.
+   */
+  public function testJsonApiViewsResourceExposedSort() {
+    $this->drupalLogin($this->drupalCreateUser(['access content']));
+
+    $nodes = [];
+    for ($i = 0; $i < 5; $i++) {
+      $node = $this->drupalCreateNode([
+        'type' => 'room',
+        'status' => 1,
+      ]);
+      $node->save();
+
+      $nodes['all'][$node->uuid()] = $node;
+    }
+
+    // Test that the view is ordered by Node ID in asscending direction.
+    $query = ['views-sort[sort_by]' => 'nid', 'views-sort[sort_order]' => 'ASC'];
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
+
+    $this->assertCount(5, $response_document['data']);
+    $this->assertSame(array_keys($nodes['all']), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertCacheContext($headers, 'url.query_args:views-sort');
+
+    // Test that the view is ordered by Node ID in descending direction.
+    $query = ['views-sort[sort_by]' => 'nid', 'views-sort[sort_order]' => 'DESC'];
+    [$response_document, $headers] = $this->getJsonApiViewResponse(
+      $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
+    );
+
+    $this->assertCount(5, $response_document['data']);
+    $this->assertSame(array_reverse(array_keys($nodes['all'])), array_map(static function (array $data) {
+      return $data['id'];
+    }, $response_document['data']));
+    $this->assertCacheContext($headers, 'url.query_args:views-sort');
+  }
+
+  /**
    * Tests the JSON:API Views resource Pager feature.
    */
   public function testJsonApiViewsResourcePager() {
