@@ -40,6 +40,23 @@ final class ViewsResource extends EntityResourceBase {
   }
 
   /**
+   * Extracts exposed sort values from the request.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return array
+   *   Key value pairs of exposed sorts.
+   */
+  protected function getExposedSortParams(Request $request) {
+    $all_params = $request->query->all();
+    $exposed_sort_params = isset($all_params['views-sort'])
+      ? $all_params['views-sort']
+      : [];
+    return $exposed_sort_params;
+  }
+
+  /**
    * Get views pager.
    *
    * @param \Drupal\views\ViewExecutable $view
@@ -100,7 +117,9 @@ final class ViewsResource extends EntityResourceBase {
   protected function executeView(ViewExecutable &$view, string $display_id, Request $request) {
     // Get params from request.
     $exposed_filter_params = $this->getExposedFilterParams($request);
-    $view->setExposedInput($exposed_filter_params);
+    $exposed_sort_params = $this->getExposedSortParams($request);
+    $exposed_params = \array_merge($exposed_filter_params, $exposed_sort_params);
+    $view->setExposedInput($exposed_params);
 
     return $view->preview($display_id);
   }
