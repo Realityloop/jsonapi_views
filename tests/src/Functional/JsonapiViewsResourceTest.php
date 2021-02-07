@@ -82,10 +82,12 @@ class JsonapiViewsResourceTest extends ViewTestBase {
   /**
    * Asserts whether an expected cache context was present in the last response.
    *
+   * @param array $headers
+   *   An array of HTTP headers.
    * @param string $expected_cache_context
    *   The expected cache context.
    */
-  protected function assertCacheContext($headers, $expected_cache_context) {
+  protected function assertCacheContext(array $headers, $expected_cache_context) {
     $cache_contexts = explode(' ', $headers['X-Drupal-Cache-Contexts'][0]);
     $this
       ->assertTrue(in_array($expected_cache_context, $cache_contexts), "'" . $expected_cache_context . "' is present in the X-Drupal-Cache-Contexts header.");
@@ -150,7 +152,10 @@ class JsonapiViewsResourceTest extends ViewTestBase {
    * Tests the JSON:API Views resource Exposed Filters feature.
    */
   public function testJsonApiViewsResourceExposedFilters() {
-    $this->drupalLogin($this->drupalCreateUser(['access content', 'bypass node access']));
+    $this->drupalLogin($this->drupalCreateUser([
+      'access content',
+      'bypass node access',
+    ]));
 
     $nodes = [
       'published' => [],
@@ -200,7 +205,6 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     }, $response_document['data']));
     $this->assertCacheContext($headers, 'url.query_args:views-filter');
 
-
     // Get all nodes.
     $query = [];
     [$response_document, $headers] = $this->getJsonApiViewResponse(
@@ -245,7 +249,10 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertCacheContext($headers, 'url.query_args:views-sort');
 
     // Test that the view is ordered by Node ID in descending direction.
-    $query = ['views-sort[sort_by]' => 'nid', 'views-sort[sort_order]' => 'DESC'];
+    $query = [
+      'views-sort[sort_by]' => 'nid',
+      'views-sort[sort_order]' => 'DESC',
+    ];
     [$response_document, $headers] = $this->getJsonApiViewResponse(
       $this->getJsonApiViewUrl('jsonapi_views_test_node_view', 'page_1', $query)
     );

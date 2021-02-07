@@ -141,7 +141,7 @@ final class ViewsResource extends EntityResourceBase {
     assert($view instanceof ViewExecutable);
     $display_id = $request->get('display');
 
-    // TODO: Check access properly.
+    // @todo Check access properly.
     if (!$view->access([$display_id])) {
       return $this->createJsonapiResponse($this->createCollectionDataFromEntities([]), $request, 403, []);
     }
@@ -169,7 +169,11 @@ final class ViewsResource extends EntityResourceBase {
 
     $response = $this->createJsonapiResponse($data, $request, 200, [], $pagination_links);
     if (isset($bubbleable_metadata)) {
-      $bubbleable_metadata->addCacheContexts(['url.query_args:page', 'url.query_args:views-filter', 'url.query_args:views-sort']);
+      $bubbleable_metadata->addCacheContexts([
+        'url.query_args:page',
+        'url.query_args:views-filter',
+        'url.query_args:views-sort',
+      ]);
       $response->addCacheableDependency($bubbleable_metadata);
     }
     return $response;
