@@ -73,7 +73,7 @@ final class ViewsResource extends EntityResourceBase {
     $pager = $pager_manager->getPager($element);
 
     if (!$pager) {
-      return [$pager_links, NULL];
+      return [$pager_links, count($view->result)];
     }
 
     $parameters = [];
