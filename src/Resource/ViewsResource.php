@@ -67,6 +67,11 @@ final class ViewsResource extends EntityResourceBase {
    */
   public function getViewsPager(ViewExecutable $view) : array {
     $pager_links = new LinkCollection([]);
+
+    if (!$view->pager) {
+      return [$pager_links, count($view->result)];
+    }
+
     /** @var \Drupal\Core\Pager\PagerManagerInterface $pager_manager */
     $pager_manager = \Drupal::service('pager.manager');
     $element = $view->pager->getPagerId();
