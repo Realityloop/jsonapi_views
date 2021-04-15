@@ -6,6 +6,8 @@ Entities resulting from a view query will be available at `/jsonapi/views/{view_
 
 This endpoint should respect any exposed filter parameters configured for a display.
 
+When the `jsonapi_hypermedia` module is also installed, the /jsonapi route will show the view links.
+
 
 ## Why would you ever want to do that?
 
