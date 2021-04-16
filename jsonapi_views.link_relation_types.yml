@@ -1,0 +1,3 @@
+view_results:
+  description: "The link's target points to a resource that provides View results."
+  notes: "This link relation type extends the `related` link relation type. It inherits all of the same semantics while adding new semantics of its own."

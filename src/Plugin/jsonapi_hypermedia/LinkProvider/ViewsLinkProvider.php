@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\jsonapi_menu_items\Plugin\jsonapi_hypermedia\LinkProvider;
+namespace Drupal\jsonapi_views\Plugin\jsonapi_hypermedia\LinkProvider;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableMetadata;
@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @JsonapiHypermediaLinkProvider(
  *   id = "jsonapi_views.top_level.view_items",
  *   deriver = "Drupal\jsonapi_views\Plugin\Derivative\ViewsProviderDeriver",
- *   link_relation_type = "view_items",
+ *   link_relation_type = "view_results",
  * )
  */
 final class ViewsLinkProvider extends LinkProviderBase implements ContainerFactoryPluginInterface {
@@ -37,7 +37,7 @@ final class ViewsLinkProvider extends LinkProviderBase implements ContainerFacto
     return AccessRestrictedLink::createLink(
       AccessResult::allowed(),
       new CacheableMetadata(),
-      new Url('jsonapi_views', ['display_id' => $this->pluginDefinition['link_context']['display_id']]),
+      new Url("jsonapi_views.{$this->pluginDefinition['link_context']['view_id']}.{$this->pluginDefinition['link_context']['display_id']}"),
       $this->getLinkRelationType()
     );
   }
