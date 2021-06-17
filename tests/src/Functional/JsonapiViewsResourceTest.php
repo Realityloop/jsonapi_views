@@ -94,6 +94,21 @@ class JsonapiViewsResourceTest extends ViewTestBase {
   }
 
   /**
+   * Asserts whether expected cache tags were present in the last response.
+   *
+   * @param array $headers
+   *   An array of HTTP headers.
+   * @param array $expected_cache_tags
+   *   The expected cache tags.
+   */
+  protected function assertCacheTags(array $headers, array $expected_cache_tags) {
+    $cache_tags = explode(' ', $headers['X-Drupal-Cache-Tags'][0]);
+    ksort($expected_cache_tags);
+    ksort($cache_tags);
+    $this->assertEquals($expected_cache_tags, $cache_tags, "Expected cache tags are present in the X-Drupal-Cache-Tags header.");
+  }
+
+  /**
    * Tests that the test view has been enabled.
    */
   public function testNodeViewExists() {
@@ -125,6 +140,13 @@ class JsonapiViewsResourceTest extends ViewTestBase {
     $this->assertCount(2, $response_document['data']);
     $this->assertEqual(2, $response_document['meta']['count']);
     $this->assertCacheContext($headers, 'url.query_args:page');
+    $this->assertCacheTags($headers, [
+      'config:views.view.jsonapi_views_test_node_view',
+      'http_response',
+      'node:1',
+      'node:2',
+      'node_list',
+    ]);
 
     // Block display.
     [$response_document, $headers] = $this->getJsonApiViewResponse(
