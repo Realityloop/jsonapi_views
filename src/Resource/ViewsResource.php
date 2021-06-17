@@ -165,6 +165,7 @@ final class ViewsResource extends EntityResourceBase {
     else {
       $bubbleable_metadata = BubbleableMetadata::createFromObject($view->result);
     }
+    $bubbleable_metadata->addCacheTags($view->getCacheTags());
 
     $entities = array_map(function (ResultRow $row) {
       return $row->_entity;
